@@ -236,7 +236,6 @@ namespace SaferMutex
             private const int AttemptsPerTimeout = 10;
 
             private readonly string _lockFilePath;
-            private readonly Scope _scope;
             private readonly bool _createdNew;
             private FileStream _lockFileStream;
             private bool _hasLock;
@@ -249,7 +248,6 @@ namespace SaferMutex
                     throw new ArgumentException($"The Global\\ name prefix should not be used.  Use the Scope parameter to control the scope of the mutex");
 
                 _lockFilePath = GenerateLockFilePath(name, scope, customRootLockDirectory);
-                _scope = scope;
 
                 if (!initiallyOwned)
                 {
