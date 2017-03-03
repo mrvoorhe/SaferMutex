@@ -14,14 +14,24 @@ namespace SaferMutex.Tests.Utils
 
         private Background(Action action)
         {
-
             _backgroundThread = new Thread(() => ActionWrapper(action));
+            _backgroundThread.Start();
+        }
+
+        private Background(Action<object> action, object value)
+        {
+            _backgroundThread = new Thread(() => ActionWrapper(action, value));
             _backgroundThread.Start();
         }
 
         public static Background Start(Action action)
         {
             return new Background(action);
+        }
+
+        public static Background Start(Action<object> action, object value)
+        {
+            return new Background(action, value);
         }
 
         public void Wait()
@@ -45,6 +55,18 @@ namespace SaferMutex.Tests.Utils
             try
             {
                 action();
+            }
+            catch (Exception e)
+            {
+                _backgroundException = e;
+            }
+        }
+
+        private void ActionWrapper(Action<object> action, object value)
+        {
+            try
+            {
+                action(value);
             }
             catch (Exception e)
             {

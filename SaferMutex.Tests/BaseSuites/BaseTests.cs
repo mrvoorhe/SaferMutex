@@ -3,12 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NiceIO;
+using NUnit.Framework;
 using SaferMutex.Tests.Utils;
 
 namespace SaferMutex.Tests.BaseSuites
 {
     public abstract class BaseTests
     {
+        protected static readonly NPath _tempDirectory = NPath.SystemTemp.Combine("SaferMutex");
+
+        [SetUp]
+        public void TestSetup()
+        {
+            _tempDirectory.DeleteContents();
+        }
+
         protected static void DisposeOfMutexsAsCleanlyAsPossible(params ISaferMutexMutex[] mutexCollection)
         {
             Exception exceptionDuringCleanup = null;
