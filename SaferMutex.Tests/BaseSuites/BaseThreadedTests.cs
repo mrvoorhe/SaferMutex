@@ -406,61 +406,47 @@ namespace SaferMutex.Tests.BaseSuites
 
         #region With Break Handle Cases
 
-        //[Test]
-        //public void VerifyWaitOneWithBreakHandles_FailureDueToTimeout()
-        //{
-        //    var name = $"Global\\{nameof(VerifyWaitOneWithBreakHandles_FailureDueToTimeout)}";
-        //    bool createdNew;
-        //    using (var mutex = CreateMutex(true, name, out createdNew))
-        //    {
-        //        Assert.IsTrue(createdNew);
+        [Test]
+        public void VerifyWaitOneWithBreakHandles_FailureDueToTimeout()
+        {
+            var name = nameof(VerifyWaitOneWithBreakHandles_FailureDueToTimeout);
+            using (var mutex = CreateMutex(true, name))
+            {
+                Background.Start(() =>
+                {
+                    using (var otherHandle = new ManualResetEvent(false))
+                    {
+                        using (var mutex2 = CreateMutex(true, name))
+                        {
+                            var resultOwned = mutex2.WaitOne(otherHandle, 1);
+                            Assert.IsFalse(resultOwned);
+                        }
+                    }
+                }).Wait();
+            }
+        }
 
-        //        Task.Run(() =>
-        //        {
-        //            using (var otherHandle = new ManualResetEvent(false))
-        //            {
-        //                bool wasCreated2;
-        //                using (var mutex2 = CreateMutex(true, name, out wasCreated2))
-        //                {
-        //                    Assert.IsFalse(wasCreated2);
+        [Test]
+        public void VerifyWaitOneWithBreakHandles_BreakIsSetFirst()
+        {
+            var name = nameof(VerifyWaitOneWithBreakHandles_BreakIsSetFirst);
+            using (var mutex = CreateMutex(true, name))
+            {
+                Background.Start(() =>
+                {
+                    using (var otherHandle = new ManualResetEvent(true))
+                    {
+                        using (var mutex2 = CreateMutex(true, name))
+                        {
+                            var resultOwned = mutex2.WaitOne(otherHandle);
 
-        //                    var resultOwned = mutex2.WaitOne(otherHandle, 1);
-
-        //                    Assert.IsFalse(resultOwned);
-        //                }
-        //            }
-        //        }).Wait();
-        //    }
-        //}
-
-        //[Test]
-        //public void VerifyWaitOneWithBreakHandles_BreakIsSetFirst()
-        //{
-        //    var name = $"Global\\{nameof(VerifyWaitOneWithBreakHandles_BreakIsSetFirst)}";
-        //    bool createdNew;
-        //    using (var mutex = CreateMutex(true, name, out createdNew))
-        //    {
-        //        Assert.IsTrue(createdNew);
-
-        //        Task.Run(() =>
-        //        {
-        //            using (var otherHandle = new ManualResetEvent(true))
-        //            {
-        //                bool wasCreated2;
-        //                using (var mutex2 = CreateMutex(true, name, out wasCreated2))
-        //                {
-        //                    Assert.IsFalse(wasCreated2);
-
-
-        //                    var resultOwned = mutex2.WaitOne(otherHandle);
-
-        //                    // We won't get ownership because the mutex is already owned.
-        //                    Assert.IsFalse(resultOwned);
-        //                }
-        //            }
-        //        }).Wait();
-        //    }
-        //}
+                            // We won't get ownership because the mutex is already owned.
+                            Assert.IsFalse(resultOwned);
+                        }
+                    }
+                }).Wait();
+            }
+        }
 
         #endregion
 
@@ -509,7 +495,5 @@ namespace SaferMutex.Tests.BaseSuites
         }
 
         protected abstract ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned,  out bool createdNew);
-
-        //protected abstract ISaferMutexMutex EnterImplementation(string name);
     }
 }

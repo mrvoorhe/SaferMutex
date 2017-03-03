@@ -179,22 +179,55 @@ namespace SaferMutex
 
             public bool WaitOne(WaitHandle breakHandle)
             {
-                throw new NotImplementedException();
+                return WaitOne(breakHandle, Timeout.Infinite);
             }
 
             public bool WaitOne(WaitHandle breakHandle, int millisecondsTimeout)
             {
-                throw new NotImplementedException();
+                int notUsed;
+                return WaitOne(new[] { breakHandle }, millisecondsTimeout, out notUsed);
             }
 
             public bool WaitOne(WaitHandle[] breakHandles, out int index)
             {
-                throw new NotImplementedException();
+                return WaitOne(breakHandles, Timeout.Infinite, out index);
             }
 
             public bool WaitOne(WaitHandle[] breakHandles, int millisecondsTimeout, out int index)
             {
-                throw new NotImplementedException();
+                using (var wrapperHandle = new ManualResetEvent(false))
+                {
+                    wrapperHandle.SafeWaitHandle = _mutex.SafeWaitHandle;
+                    WaitHandle[] handles = new WaitHandle[breakHandles.Length + 1];
+                    handles[0] = wrapperHandle;
+
+                    for (int i = 0; i < breakHandles.Length; i++)
+                    {
+                        handles[i + 1] = breakHandles[i];
+                    }
+
+                    int setIndex = WaitHandle.WaitAny(handles, millisecondsTimeout);
+
+                    // Timeout
+                    if (setIndex < 0)
+                    {
+                        index = setIndex;
+                        return false;
+                    }
+
+                    // Mutex owned
+                    if (setIndex == 0)
+                    {
+                        index = int.MinValue;
+                        return true;
+                    }
+
+                    // Otherwise, a break handle was set.
+                    // Need to adjust the index by -1 so that the index
+                    // returned matches up with the index in the array that was passed in
+                    index = setIndex - 1;
+                    return false;
+                }
             }
 
             public void Dispose()
@@ -459,12 +492,12 @@ namespace SaferMutex
 
                 try
                 {
-                    // TODO by Mike : Probably not a great idea.  Could this be racey?  Might be OK since the stream creation would throw and then createdNew would be set back to false.
-                    if (File.Exists(_lockFilePath))
-                    {
-                        createdNew = false;
-                        return;
-                    }
+                    //// TODO by Mike : Probably not a great idea.  Could this be racey?  Might be OK since the stream creation would throw and then createdNew would be set back to false.
+                    //if (File.Exists(_lockFilePath))
+                    //{
+                    //    createdNew = false;
+                    //    return;
+                    //}
 
                     //createdNew = !File.Exists(_lockFilePath);
 
