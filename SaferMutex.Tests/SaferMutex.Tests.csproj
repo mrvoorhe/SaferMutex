@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="BaseSuites\BaseThreadedStressTests.cs" />
     <Compile Include="FileBased.Global\ThreadedMutexTests.cs" />
+    <Compile Include="FileBased\ThreadedMutexTestsV2.cs" />
     <Compile Include="FrameworkBased.Global\ThreadedMutexTets.cs" />
     <Compile Include="Utils\Background.cs" />
     <Compile Include="Utils\UtilsAndExtensions.cs" />
