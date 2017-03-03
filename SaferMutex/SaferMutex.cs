@@ -648,7 +648,6 @@ namespace SaferMutex
                 }
 
                 owned = true;
-                //owned = TryLock();
                 _createdNew = createdNew;
             }
 
