@@ -14,7 +14,7 @@ namespace SaferMutex.Tests.FileBased
     {
         protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
-            return new SaferMutex.FileBased(initiallyOwned, name, Scope.CurrentProcess, out owned, out createdNew, _tempDirectory.ToString());
+            return new SaferMutex.FileBased2(initiallyOwned, name, Scope.CurrentProcess, out owned, out createdNew, _tempDirectory.ToString());
         }
     }
 }
