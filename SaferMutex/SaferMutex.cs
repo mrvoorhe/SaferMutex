@@ -538,9 +538,7 @@ namespace SaferMutex
 
             private static string SanitizeForPathUsage(string name)
             {
-                // TODO : Clean out invalid path chars
-                // Remove spaces (just cuz)
-                return name;
+                return name.Replace(' ', '_');
             }
 
             private static string LockDirectoryFor(Scope scope, string customRootLockDirectory)
