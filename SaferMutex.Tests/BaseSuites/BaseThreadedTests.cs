@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace SaferMutex.Tests.BaseSuites
 {
-    public abstract class BaseThreadedTests
+    public abstract class BaseThreadedTests : BaseTests
     {
         #region Initial Ownership
 
@@ -449,51 +449,5 @@ namespace SaferMutex.Tests.BaseSuites
         }
 
         #endregion
-
-        #region Helpers
-
-        private static void DisposeOfMutexsAsCleanlyAsPossible(params ISaferMutexMutex[] mutexCollection)
-        {
-            Exception exceptionDuringCleanup = null;
-            foreach (var mutex in mutexCollection)
-            {
-                try
-                {
-                    if (mutex != null)
-                        mutex.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    if (exceptionDuringCleanup == null)
-                        exceptionDuringCleanup = ex;
-                }
-            }
-
-            if (exceptionDuringCleanup != null)
-                throw exceptionDuringCleanup;
-        }
-
-        #endregion
-
-        private CreatedMutexContainer CreateMutex(bool initiallyOwned, string name)
-        {
-            bool owned;
-            bool createdNew;
-            var mutex = CreateMutexImplementation(initiallyOwned, name, out owned, out createdNew);
-            return new CreatedMutexContainer { Mutex = mutex, Owned = owned, CreatedNew = createdNew, CreateFunc = CreateMutex, Name = name};
-        }
-
-        private ISaferMutexMutex CreateMutex(bool initiallyOwned, string name, out bool owned)
-        {
-            bool createdNew;
-            return CreateMutex(initiallyOwned, name, out owned, out createdNew);
-        }
-
-        private ISaferMutexMutex CreateMutex(bool initiallyOwned, string name, out bool owned, out bool createdNew)
-        {
-            return CreateMutexImplementation(initiallyOwned, name, out owned, out createdNew);
-        }
-
-        protected abstract ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned,  out bool createdNew);
     }
 }

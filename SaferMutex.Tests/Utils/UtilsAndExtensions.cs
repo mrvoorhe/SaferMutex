@@ -61,7 +61,7 @@ namespace SaferMutex.Tests.Utils
     {
         public delegate ISaferMutexMutex CreateMutexFunc(bool initiallyOwned, string name, out bool owned);
 
-        public const int AvoidHangTimeout = 1000;
+        public const int AvoidHangTimeout = 30000;
 
         public static void WaitAndAssertIfHung(this WaitHandle handle)
         {
