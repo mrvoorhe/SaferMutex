@@ -24,3 +24,13 @@ build/
 .DS_Store
 
 TestResult.xml
+
+.idea/.idea.SaferMutex/.idea/contentModel.xml
+
+.idea/.idea.SaferMutex/.idea/modules.xml
+
+.idea/.idea.SaferMutex/.idea/vcs.xml
+
+.idea/.idea.SaferMutex/.idea/workspace.xml
+
+.idea/.idea.SaferMutex/riderModule.iml
