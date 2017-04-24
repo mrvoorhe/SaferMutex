@@ -44,12 +44,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BaseSuites\BaseExternalProcessStressTests.cs" />
     <Compile Include="BaseSuites\BaseTests.cs" />
     <Compile Include="BaseSuites\BaseThreadedStressTests.cs" />
+    <Compile Include="FileBased.Global\ExternalProcessStressTests.cs" />
     <Compile Include="FileBased.Global\ThreadedMutexTests.cs" />
     <Compile Include="FileBased\ThreadedMutexTestsV2.cs" />
     <Compile Include="FileBased\ThreadedStressTests.cs" />
     <Compile Include="FileBased\ThreadedStressTestsV2.cs" />
+    <Compile Include="FrameworkBased.Global\ExternalProcessStressTests.cs" />
     <Compile Include="FrameworkBased.Global\ThreadedMutexTets.cs" />
     <Compile Include="FrameworkBased\ThreadedStressTests.cs" />
     <Compile Include="Utils\Background.cs" />

@@ -3,18 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SaferMutex.Tests.BaseSuites;
 using NUnit.Framework;
+using SaferMutex.Tests.BaseSuites;
 
-namespace SaferMutex.Tests.FrameworkBased.Global
+namespace SaferMutex.Tests.FileBased.Global
 {
     [TestFixture]
-    [Platform(Include = "Win")]
-    public class ThreadedMutexTets : BaseThreadedTests
+    public class ExternalProcessStressTests : BaseExternalProcessStressTests
     {
         protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
-            return new SaferMutex.FrameworkMutexBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew);
+            throw new NotSupportedException();
+        }
+
+        protected override string MutexTypeToCreate
+        {
+            get { return "FileBasedGlobal"; }
         }
     }
 }
