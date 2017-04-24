@@ -22,43 +22,53 @@ namespace SaferMutex.Tests.MutexGrabber
 
             failureLogFilePath = Path.Combine(testTemporaryDirectory, $"failure-log-{Process.GetCurrentProcess().Id}.txt");
 
-            Action safeAction = null;
-            if (mode == "IncrementCounter")
-                safeAction = () => ImcrementCounter(sharedFilePath);
-            else if (mode == "WriteToCommonFile")
-                safeAction = () => WriteProcessId(sharedFilePath);
-            else
-            {
-                if (!string.IsNullOrEmpty(mode))
-                {
-                    LogOutput($"Unknown run mode {mode}");
-                    return 1;
-                }
-            }
+	        try
+	        {
+				Action safeAction = null;
+				if (mode == "IncrementCounter")
+					safeAction = () => ImcrementCounter(sharedFilePath);
+				else if (mode == "WriteToCommonFile")
+					safeAction = () => WriteProcessId(sharedFilePath);
+				else
+				{
+					if (!string.IsNullOrEmpty(mode))
+					{
+						LogOutput($"Unknown run mode {mode}");
+						return 1;
+					}
+				}
 
-            // Block until wait file is deleted
-            while (File.Exists(waitFilePath))
-                Thread.Sleep(1);
+				// Block until wait file is deleted
+				while (File.Exists(waitFilePath))
+					Thread.Sleep(1);
 
-            bool owned;
-            using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
-            {
-                if (!owned)
-                {
-                    // Use timeout to avoid a hang if there is a bug
-                    if (!mutex.WaitOne(10000))
-                    {
-                        LogOutput("Should have been able to obtain ownership of the mutex by now");
-                    }
-                }
+				bool owned;
+				using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
+				{
+					if (!owned)
+					{
+						// Use timeout to avoid a hang if there is a bug
+						if (!mutex.WaitOne(10000))
+						{
+							LogOutput("Should have been able to obtain ownership of the mutex by now");
+						}
+					}
 
-                if (safeAction != null)
-                {
-                    safeAction();
-                }
-            }
+					if (safeAction != null)
+					{
+						safeAction();
+					}
+				}
 
-            return 0;
+				return 0;
+	        }
+	        catch (Exception e)
+	        {
+		        LogOutput("MutexGrabber crashed");
+		        LogOutput(e.Message);
+		        LogOutput(e.StackTrace);
+		        return 2;
+	        }
         }
 
         private static void LogOutput(string message)

@@ -42,19 +42,44 @@ namespace SaferMutex.Tests.BaseSuites
             var name = nameof(LotsOfProcessesIncrementingACounter);
             var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
 
+
             var counterFilePath = _tempDirectory.Combine("counter.txt").WriteAllText("0");
 
+	        Console.WriteLine(counterFilePath);
+
             List<Process> workers = new List<Process>();
-            for (int i = 0; i < processesToUse; i++)
-            {
-                workers.Add(StartWorkerProcess(name, waitFilePath, "IncrementCounter", counterFilePath));
-            }
 
-            waitFilePath.Delete();
+	        try
+	        {
+		        for (int i = 0; i < processesToUse; i++)
+		        {
+			        workers.Add(StartWorkerProcess(name, waitFilePath, "IncrementCounter", counterFilePath));
+		        }
 
-            CleanlyJoinAll(workers.ToArray());
+		        waitFilePath.Delete();
 
-            int counter = int.Parse(counterFilePath.ReadAllText());
+		        CleanlyJoinAll(workers.ToArray());
+	        }
+	        catch (Exception e)
+	        {
+		        foreach (var worker in workers)
+		        {
+			        try
+			        {
+				        if(worker.HasExited)
+					        continue;
+						worker.Kill();
+			        }
+			        catch (Exception exception)
+			        {
+				        Console.WriteLine(exception);
+			        }
+		        }
+
+		        throw;
+	        }
+
+	        int counter = int.Parse(counterFilePath.ReadAllText());
             Assert.That(counter, Is.EqualTo(processesToUse));
         }
 
