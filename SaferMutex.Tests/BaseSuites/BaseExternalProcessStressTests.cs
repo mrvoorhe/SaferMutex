@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading;
 using NiceIO;
 using NUnit.Framework;
@@ -22,9 +23,7 @@ namespace SaferMutex.Tests.BaseSuites
 
             var workers = new List<Process>();
             for (var i = 0; i < 50; i++)
-            {
                 workers.Add(StartWorkerProcess(name, waitFilePath));
-            }
 
             waitFilePath.Delete();
 
@@ -42,60 +41,128 @@ namespace SaferMutex.Tests.BaseSuites
             var name = nameof(LotsOfProcessesIncrementingACounter);
             var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
 
-
             var counterFilePath = _tempDirectory.Combine("counter.txt").WriteAllText("0");
 
-	        Console.WriteLine(counterFilePath);
+            Console.WriteLine(_tempDirectory);
 
-            List<Process> workers = new List<Process>();
+            var workers = new List<Process>();
 
-	        try
-	        {
-		        for (int i = 0; i < processesToUse; i++)
-		        {
-			        workers.Add(StartWorkerProcess(name, waitFilePath, "IncrementCounter", counterFilePath));
-		        }
+            try
+            {
+                for (var i = 0; i < processesToUse; i++)
+                    workers.Add(StartWorkerProcess(name, waitFilePath, "IncrementCounter", counterFilePath));
 
-		        waitFilePath.Delete();
+                waitFilePath.Delete();
 
-		        CleanlyJoinAll(workers.ToArray());
-	        }
-	        catch (Exception e)
-	        {
-		        foreach (var worker in workers)
-		        {
-			        try
-			        {
-				        if(worker.HasExited)
-					        continue;
-						worker.Kill();
-			        }
-			        catch (Exception exception)
-			        {
-				        Console.WriteLine(exception);
-			        }
-		        }
+                CleanlyJoinAll(workers.ToArray());
+            }
+            catch (Exception)
+            {
+                KillRemainingRunningWorkers(workers);
+                throw;
+            }
 
-		        throw;
-	        }
-
-	        int counter = int.Parse(counterFilePath.ReadAllText());
+            var counter = int.Parse(counterFilePath.ReadAllText());
             Assert.That(counter, Is.EqualTo(processesToUse));
         }
 
-        private Process StartWorkerProcess(string mutexName, NPath waitFilePath, string mode = null, NPath sharedDataFilePath = null)
+        [TestCase(50, 20)]
+        [TestCase(100, 20)]
+        [TestCase(500, 20)]
+        [TestCase(1000, 20)]
+        public void LotsOfProcessesIncrementingACounter_MultiPass(int processesToUse, int passes)
+        {
+            for (int i = 0; i < passes; i++)
+            {
+                LotsOfProcessesWritingToACommonFile(processesToUse);
+
+                _tempDirectory.DeleteContents();
+            }
+        }
+
+        [TestCase(50)]
+        [TestCase(100)]
+        public void LotsOfProcessesWritingToACommonFile(int processesToUse)
+        {
+            var name = nameof(LotsOfProcessesWritingToACommonFile);
+            var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
+            var filePath = _tempDirectory.Combine($"{name}.txt");
+
+            Console.WriteLine(_tempDirectory);
+
+            var workers = new List<Process>();
+
+            try
+            {
+                for (var i = 0; i < processesToUse; i++)
+                    workers.Add(StartWorkerProcess(name, waitFilePath, "WriteToCommonFile", filePath));
+
+                waitFilePath.Delete();
+
+                CleanlyJoinAll(workers.ToArray());
+            }
+            catch (Exception)
+            {
+                KillRemainingRunningWorkers(workers);
+                throw;
+            }
+
+            var allLines = filePath.ReadAllLines();
+            Assert.That(allLines.Length, Is.EqualTo(processesToUse));
+
+            // Make sure the data we wrote is roughly correct
+            foreach (var line in allLines)
+                Assert.IsTrue(line.StartsWith("I'm Process "), $"Something went wrong.  A line didn't have the expected output : {line}");
+        }
+
+        [TestCase(50, 20)]
+        [TestCase(100, 20)]
+        public void LotsOfProcessesWritingToACommonFile_MultiPass(int processesToUse, int passes)
+        {
+            for (int i = 0; i < passes; i++)
+            {
+                LotsOfProcessesWritingToACommonFile(processesToUse);
+
+                _tempDirectory.DeleteContents();
+            }
+        }
+
+        private static void KillRemainingRunningWorkers(IEnumerable<Process> workers)
+        {
+            foreach (var worker in workers)
+            {
+                try
+                {
+                    if (worker.HasExited)
+                        continue;
+                    worker.Kill();
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception);
+                }
+            }
+        }
+
+        private Process StartWorkerProcess(string mutexName, NPath waitFilePath, string mode = null, NPath sharedDataFilePath = null, string moreData = null)
         {
             var mutexGrabberPath = NPath.CurrentDirectory.Combine("SaferMutex.Tests.MutexGrabber.exe");
 
             if (!mutexGrabberPath.Exists())
                 throw new FileNotFoundException(mutexGrabberPath.ToString());
 
-            string args = $"{MutexTypeToCreate} {mutexName} {_tempDirectory} {waitFilePath}";
+            StringBuilder argBuilder = new StringBuilder();
+            argBuilder.Append($"{MutexTypeToCreate} {mutexName} {_tempDirectory} {waitFilePath}");
 
             if (!string.IsNullOrEmpty(mode))
-                args = $"{args} {mode} {sharedDataFilePath}";
+            {
+                argBuilder.Append($" {mode} {sharedDataFilePath}");
 
-            var startInfo = new ProcessStartInfo(mutexGrabberPath.ToString(), args);
+                if (!string.IsNullOrEmpty(moreData))
+                    argBuilder.Append($" {moreData}");
+            }
+
+            var startInfo = new ProcessStartInfo(mutexGrabberPath.ToString(), argBuilder.ToString());
             startInfo.CreateNoWindow = true;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
             var process = Process.Start(startInfo);
