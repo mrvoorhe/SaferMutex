@@ -224,7 +224,7 @@ namespace SaferMutex.Tests.BaseSuites
 	            var workerOutput = outputFilePath.Exists()
 		            ? outputFilePath.ReadAllText()
 		            : $"No output file at : {outputFilePath}";
-                throw new Exception($"Worker process {failedProcess.Id} exited with a non-zero exit code of {failedProcess.ExitCode}.  Output was:\n {workerOutput}");
+                throw new Exception($"Worker process {failedProcess.Id} exited with a non-zero exit code of {failedProcess.ExitCode}.  Output was:\n{workerOutput}");
             }
         }
     }

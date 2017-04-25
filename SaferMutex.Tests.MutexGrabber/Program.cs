@@ -8,8 +8,6 @@ namespace SaferMutex.Tests.MutexGrabber
 {
     class Program
     {
-	    private static StreamWriter outputWriter;
-
         static int Main(string[] args)
         {
             var mutexType = args[0];
@@ -21,81 +19,83 @@ namespace SaferMutex.Tests.MutexGrabber
             var sharedFilePath = args.Length >= 6 ? args[5] : string.Empty;
 
 	        var aliveFilePath = Path.Combine(testTemporaryDirectory, $"output-{Process.GetCurrentProcess().Id}.txt");
-	        outputWriter = new StreamWriter(aliveFilePath);
-	        try
+	        using (var outputWriter = new StreamWriter(aliveFilePath))
 	        {
-		        LogOutput("I Started!");
-
+		        var originalStdout = Console.Out;
+		        Console.SetOut(outputWriter);
 		        try
 		        {
-			        Action safeAction = null;
-			        if (mode == "IncrementCounter")
-				        safeAction = () => ImcrementCounter(sharedFilePath);
-			        else if (mode == "WriteToCommonFile")
-				        safeAction = () => WriteProcessId(sharedFilePath);
-			        else
-			        {
-				        if (!string.IsNullOrEmpty(mode))
-				        {
-					        LogOutput($"Unknown run mode {mode}");
-					        return 1;
-				        }
-			        }
+			        LogOutput("I Started!");
 
-			        // Block until wait file is deleted
-			        while (File.Exists(waitFilePath))
-				        Thread.Sleep(1);
-
-			        bool owned;
-			        using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
+			        try
 			        {
-				        if (!owned)
+				        Action safeAction = null;
+				        if (mode == "IncrementCounter")
+					        safeAction = () => ImcrementCounter(sharedFilePath);
+				        else if (mode == "WriteToCommonFile")
+					        safeAction = () => WriteProcessId(sharedFilePath);
+				        else
 				        {
-					        // Use timeout to avoid a hang if there is a bug
-					        if (!mutex.WaitOne(10000))
+					        if (!string.IsNullOrEmpty(mode))
 					        {
-						        LogOutput("Should have been able to obtain ownership of the mutex by now");
-						        return 2;
+						        LogOutput($"Unknown run mode {mode}");
+						        return 1;
 					        }
-					        LogOutput("I need to wait for the mutex");
 				        }
 
-				        LogOutput("Got the mutex");
+				        // Block until wait file is deleted
+				        while (File.Exists(waitFilePath))
+					        Thread.Sleep(1);
 
-				        if (safeAction != null)
+				        bool owned;
+				        using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
 				        {
-					        LogOutput("Calling my action!");
-					        safeAction();
+					        if (!owned)
+					        {
+						        // Use timeout to avoid a hang if there is a bug
+						        if (!mutex.WaitOne(10000))
+						        {
+							        LogOutput("Should have been able to obtain ownership of the mutex by now");
+							        return 2;
+						        }
+						        LogOutput("I need to wait for the mutex");
+					        }
+
+					        LogOutput("Got the mutex");
+
+					        if (safeAction != null)
+					        {
+						        LogOutput("Calling my action!");
+						        safeAction();
+					        }
+
+					        LogOutput("About to release the mutex!");
+					        mutex.ReleaseMutex();
+					        LogOutput("Mutex released!");
 				        }
 
-				        LogOutput("About to release the mutex!");
-				        mutex.ReleaseMutex();
-				        LogOutput("Mutex released!");
+				        LogOutput("I Ended!");
+
+				        return 0;
 			        }
-
-			        LogOutput("I Ended!");
-
-			        return 0;
+			        catch (Exception e)
+			        {
+				        LogOutput("MutexGrabber crashed");
+				        LogOutput(e.Message);
+				        LogOutput(e.StackTrace);
+				        return 3;
+			        }
 		        }
-		        catch (Exception e)
+		        finally
 		        {
-			        LogOutput("MutexGrabber crashed");
-			        LogOutput(e.Message);
-			        LogOutput(e.StackTrace);
-			        return 3;
+			        Console.SetOut(originalStdout);
 		        }
-	        }
-	        finally
-	        {
-		        outputWriter.Dispose();
-		        outputWriter = null;
 	        }
         }
 
         private static void LogOutput(string message)
         {
             Console.WriteLine(message);
-	        outputWriter.WriteLine(message);
         }
 
         private static ISaferMutexMutex CreateMutex(string mutexType, string temporaryDirectory, bool initiallyOwned, string name, out bool owned)
