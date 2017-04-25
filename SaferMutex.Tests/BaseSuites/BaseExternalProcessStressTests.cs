@@ -34,10 +34,10 @@ namespace SaferMutex.Tests.BaseSuites
         [TestCase(100, 1)]
         //[TestCase(500, 1)]
         //[TestCase(1000, 1)]
-        [TestCase(50, 20)]
-        [TestCase(100, 20)]
-        //[TestCase(500, 20)]
-        //[TestCase(1000, 20)]
+        [TestCase(10, 10)]
+        [TestCase(20, 10)]
+        //[TestCase(20, 20)]
+        //[TestCase(50, 20)]
         public void IncrementingACounter(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
@@ -52,8 +52,12 @@ namespace SaferMutex.Tests.BaseSuites
 
         [TestCase(50, 1)]
         [TestCase(100, 1)]
-        [TestCase(50, 20)]
-        [TestCase(100, 20)]
+        //[TestCase(500, 1)]
+        //[TestCase(1000, 1)]
+        [TestCase(10, 10)]
+        [TestCase(20, 10)]
+        //[TestCase(20, 20)]
+        //[TestCase(50, 20)]
         public void IncrementingACounterWithParentProcessCreatingMutex(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
