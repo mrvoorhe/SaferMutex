@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
 namespace SaferMutex.Tests.MutexGrabber
 {
-    class Program
+    internal class Program
     {
-        static int Main(string[] args)
+        private static int Main(string[] args)
         {
             var mutexType = args[0];
             var mutexName = args[1];
@@ -18,79 +17,83 @@ namespace SaferMutex.Tests.MutexGrabber
             var mode = args.Length >= 6 ? args[4] : string.Empty;
             var sharedFilePath = args.Length >= 6 ? args[5] : string.Empty;
 
-	        var aliveFilePath = Path.Combine(testTemporaryDirectory, $"output-{Process.GetCurrentProcess().Id}.txt");
-	        using (var outputWriter = new StreamWriter(aliveFilePath))
-	        {
-		        var originalStdout = Console.Out;
-		        Console.SetOut(outputWriter);
-		        try
-		        {
-			        LogOutput("I Started!");
+            var aliveFilePath = Path.Combine(testTemporaryDirectory, $"output-{Process.GetCurrentProcess().Id}.txt");
+            using (var outputWriter = new StreamWriter(aliveFilePath))
+            {
+                var originalStdout = Console.Out;
+                Console.SetOut(outputWriter);
+                try
+                {
+                    LogOutput("I Started!");
 
-			        try
-			        {
-				        Action safeAction = null;
-				        if (mode == "IncrementCounter")
-					        safeAction = () => ImcrementCounter(sharedFilePath);
-				        else if (mode == "WriteToCommonFile")
-					        safeAction = () => WriteProcessId(sharedFilePath);
-				        else
-				        {
-					        if (!string.IsNullOrEmpty(mode))
-					        {
-						        LogOutput($"Unknown run mode {mode}");
-						        return 1;
-					        }
-				        }
+                    try
+                    {
+                        Action safeAction = null;
+                        if (mode == "IncrementCounter")
+                        {
+                            safeAction = () => ImcrementCounter(sharedFilePath);
+                        }
+                        else if (mode == "WriteToCommonFile")
+                        {
+                            safeAction = () => WriteProcessId(sharedFilePath);
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrEmpty(mode))
+                            {
+                                LogOutput($"Unknown run mode {mode}");
+                                return 1;
+                            }
+                        }
 
-				        // Block until wait file is deleted
-				        while (File.Exists(waitFilePath))
-					        Thread.Sleep(1);
+                        // Block until wait file is deleted
+                        while (File.Exists(waitFilePath))
+                            Thread.Sleep(1);
 
-				        bool owned;
-				        using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
-				        {
-					        if (!owned)
-					        {
-						        // Use timeout to avoid a hang if there is a bug
-						        if (!mutex.WaitOne(10000))
-						        {
-							        LogOutput("Should have been able to obtain ownership of the mutex by now");
-							        return 2;
-						        }
-						        LogOutput("I need to wait for the mutex");
-					        }
+                        bool owned;
+                        using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
+                        {
+                            if (!owned)
+                            {
+                                // Use timeout to avoid a hang if there is a bug
+                                if (!mutex.WaitOne(10000))
+                                {
+                                    LogOutput("Should have been able to obtain ownership of the mutex by now");
+                                    return 2;
+                                }
+                                LogOutput("I need to wait for the mutex");
+                            }
 
-					        LogOutput("Got the mutex");
+                            LogOutput("Got the mutex");
 
-					        if (safeAction != null)
-					        {
-						        LogOutput("Calling my action!");
-						        safeAction();
-					        }
+                            if (safeAction != null)
+                            {
+                                LogOutput("Calling my action!");
+                                safeAction();
+                            }
 
-					        LogOutput("About to release the mutex!");
-					        mutex.ReleaseMutex();
-					        LogOutput("Mutex released!");
-				        }
+                            LogOutput("About to release the mutex!");
+                            mutex.ReleaseMutex();
+                            LogOutput("Mutex released!");
+                        }
 
-				        LogOutput("I Ended!");
+                        LogOutput("I Ended!");
 
-				        return 0;
-			        }
-			        catch (Exception e)
-			        {
-				        LogOutput("MutexGrabber crashed");
-				        LogOutput(e.Message);
-				        LogOutput(e.StackTrace);
-				        return 3;
-			        }
-		        }
-		        finally
-		        {
-			        Console.SetOut(originalStdout);
-		        }
-	        }
+                        return 0;
+                    }
+                    catch (Exception e)
+                    {
+                        LogOutput("MutexGrabber crashed");
+                        LogOutput(e.Message);
+                        LogOutput(e.StackTrace);
+                        return 3;
+                    }
+                }
+                finally
+                {
+                    Console.SetOut(originalStdout);
+                }
+            }
         }
 
         private static void LogOutput(string message)
@@ -117,9 +120,9 @@ namespace SaferMutex.Tests.MutexGrabber
             int value;
             using (var reader = new StreamReader(dataFilePath))
             {
-	            var line = reader.ReadLine();
-	            if (string.IsNullOrEmpty(line))
-		            throw new InvalidOperationException("Something went wrong, there is no number in the counter file to increment");
+                var line = reader.ReadLine();
+                if (string.IsNullOrEmpty(line))
+                    throw new InvalidOperationException("Something went wrong, there is no number in the counter file to increment");
                 value = int.Parse(line);
             }
 
