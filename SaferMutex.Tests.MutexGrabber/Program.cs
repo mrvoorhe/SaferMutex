@@ -55,16 +55,18 @@ namespace SaferMutex.Tests.MutexGrabber
                         {
                             if (!owned)
                             {
+                                LogOutput("I need to wait for the mutex");
                                 // Use timeout to avoid a hang if there is a bug
-                                if (!mutex.WaitOne(10000))
+                                if (!mutex.WaitOne(60000))
                                 {
                                     LogOutput("Should have been able to obtain ownership of the mutex by now");
                                     return 2;
                                 }
-                                LogOutput("I need to wait for the mutex");
                             }
 
                             LogOutput("Got the mutex");
+
+                            //System.Threading.Thread.Sleep(500);
 
                             if (safeAction != null)
                             {
@@ -104,17 +106,24 @@ namespace SaferMutex.Tests.MutexGrabber
         private static ISaferMutexMutex CreateMutex(string mutexType, string temporaryDirectory, bool initiallyOwned, string name, out bool owned)
         {
             bool createdNew;
+            ISaferMutexMutex returnValue;
             switch (mutexType)
             {
                 case "FileBasedGlobal":
-                    return new SaferMutex.FileBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, temporaryDirectory);
+                    returnValue = new SaferMutex.FileBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, temporaryDirectory);
+                    break;
                 case "FileBased2Global":
-                    return new SaferMutex.FileBased2(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, temporaryDirectory);
+                    returnValue = new SaferMutex.FileBased2(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, temporaryDirectory);
+                    break;
                 case "FrameworkBasedGlobal":
-                    return new SaferMutex.FrameworkMutexBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew);
+                    returnValue = new SaferMutex.FrameworkMutexBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew);
+                    break;
                 default:
                     throw new InvalidOperationException($"Unknowhed mutexType : {mutexType}");
             }
+
+            Console.WriteLine($"CreatedNew was = {createdNew}");
+            return returnValue;
         }
 
         private static void ImcrementCounter(string dataFilePath)
