@@ -8,7 +8,7 @@ namespace SaferMutex.Tests.MutexGrabber
 {
     class Program
     {
-        private static string failureLogFilePath;
+	    private static StreamWriter outputWriter;
 
         static int Main(string[] args)
         {
@@ -20,12 +20,11 @@ namespace SaferMutex.Tests.MutexGrabber
             var mode = args.Length >= 6 ? args[4] : string.Empty;
             var sharedFilePath = args.Length >= 6 ? args[5] : string.Empty;
 
-            failureLogFilePath = Path.Combine(testTemporaryDirectory, $"failure-log-{Process.GetCurrentProcess().Id}.txt");
-
-	        var aliveFilePath = Path.Combine(testTemporaryDirectory, $"alive-{Process.GetCurrentProcess().Id}.txt");
-	        using (var aliveWriter = new StreamWriter(aliveFilePath))
+	        var aliveFilePath = Path.Combine(testTemporaryDirectory, $"output-{Process.GetCurrentProcess().Id}.txt");
+	        outputWriter = new StreamWriter(aliveFilePath);
+	        try
 	        {
-		        aliveWriter.WriteLine("I Started!");
+		        LogOutput("I Started!");
 
 		        try
 		        {
@@ -55,24 +54,26 @@ namespace SaferMutex.Tests.MutexGrabber
 					        // Use timeout to avoid a hang if there is a bug
 					        if (!mutex.WaitOne(10000))
 					        {
-					        	LogOutput("Should have been able to obtain ownership of the mutex by now");
-					        	return 1;
+						        LogOutput("Should have been able to obtain ownership of the mutex by now");
+						        return 2;
 					        }
-					        aliveWriter.WriteLine("I need to wait for the mutex");
+					        LogOutput("I need to wait for the mutex");
 				        }
 
-				        aliveWriter.WriteLine("Got the mutex");
+				        LogOutput("Got the mutex");
 
 				        if (safeAction != null)
 				        {
-					        aliveWriter.WriteLine("Calling my action!");
+					        LogOutput("Calling my action!");
 					        safeAction();
 				        }
 
+				        LogOutput("About to release the mutex!");
 				        mutex.ReleaseMutex();
+				        LogOutput("Mutex released!");
 			        }
 
-			        aliveWriter.WriteLine("I Ended!");
+			        LogOutput("I Ended!");
 
 			        return 0;
 		        }
@@ -81,18 +82,20 @@ namespace SaferMutex.Tests.MutexGrabber
 			        LogOutput("MutexGrabber crashed");
 			        LogOutput(e.Message);
 			        LogOutput(e.StackTrace);
-			        return 2;
+			        return 3;
 		        }
+	        }
+	        finally
+	        {
+		        outputWriter.Dispose();
+		        outputWriter = null;
 	        }
         }
 
         private static void LogOutput(string message)
         {
             Console.WriteLine(message);
-            using (var writer = new StreamWriter(failureLogFilePath))
-            {
-                writer.WriteLine(message);
-            }
+	        outputWriter.WriteLine(message);
         }
 
         private static ISaferMutexMutex CreateMutex(string mutexType, string temporaryDirectory, bool initiallyOwned, string name, out bool owned)
@@ -114,7 +117,10 @@ namespace SaferMutex.Tests.MutexGrabber
             int value;
             using (var reader = new StreamReader(dataFilePath))
             {
-                value = int.Parse(reader.ReadLine());
+	            var line = reader.ReadLine();
+	            if (string.IsNullOrEmpty(line))
+		            throw new InvalidOperationException("Something went wrong, there is no number in the counter file to increment");
+                value = int.Parse(line);
             }
 
             value++;

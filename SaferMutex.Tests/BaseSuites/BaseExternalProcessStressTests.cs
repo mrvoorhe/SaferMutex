@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Threading;
 using NiceIO;
 using NUnit.Framework;
-using SaferMutex.Tests.Utils;
 
 namespace SaferMutex.Tests.BaseSuites
 {
@@ -32,100 +30,140 @@ namespace SaferMutex.Tests.BaseSuites
             CleanlyJoinAll(workers.ToArray());
         }
 
-        [TestCase(50)]
-        [TestCase(100)]
-        [TestCase(500)]
-        [TestCase(1000)]
-        public void LotsOfProcessesIncrementingACounter(int processesToUse)
-        {
-            var name = nameof(LotsOfProcessesIncrementingACounter);
-            var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
+	    [TestCase(50, 1)]
+	    [TestCase(100, 1)]
+	    //[TestCase(500, 1)]
+	    //[TestCase(1000, 1)]
+	    [TestCase(50, 20)]
+	    [TestCase(100, 20)]
+	    //[TestCase(500, 20)]
+	    //[TestCase(1000, 20)]
+	    public void IncrementingACounter(int processesToUse, int passes)
+	    {
+		    Console.WriteLine(_tempDirectory);
 
-            var counterFilePath = _tempDirectory.Combine("counter.txt").WriteAllText("0");
+		    MultiPassHelper(passes,
+			    () =>
+			    {
+				    var name = nameof(IncrementingACounter);
+				    IncrementingACounterHelper(processesToUse, name);
+			    });
+	    }
 
-            Console.WriteLine(_tempDirectory);
+	    [TestCase(50, 1)]
+	    [TestCase(100, 1)]
+	    [TestCase(50, 20)]
+	    [TestCase(100, 20)]
+	    public void IncrementingACounterWithParentProcessCreatingMutex(int processesToUse, int passes)
+	    {
+		    Console.WriteLine(_tempDirectory);
 
-            var workers = new List<Process>();
+		    MultiPassHelper(passes,
+			    () =>
+			    {
+				    var name = nameof(IncrementingACounterWithParentProcessCreatingMutex);
+				    using (var mutex = CreateMutex(true, name))
+				    {
+					    mutex.ReleaseMutex();
 
-            try
-            {
-                for (var i = 0; i < processesToUse; i++)
-                    workers.Add(StartWorkerProcess(name, waitFilePath, "IncrementCounter", counterFilePath));
+					    IncrementingACounterHelper(processesToUse, name);
+				    }
+			    });
+	    }
 
-                waitFilePath.Delete();
+	    [TestCase(50, 1)]
+	    [TestCase(100, 1)]
+	    [TestCase(50, 20)]
+	    [TestCase(100, 20)]
+	    public void WritingToACommonFile(int processesToUse, int passes)
+	    {
+		    Console.WriteLine(_tempDirectory);
 
-                CleanlyJoinAll(workers.ToArray());
-            }
-            catch (Exception)
-            {
-                KillRemainingRunningWorkers(workers);
-                throw;
-            }
+		    MultiPassHelper(passes,
+			    () =>
+			    {
+				    var name = nameof(WritingToACommonFile);
+					WritingToACommonFileHelper(processesToUse, name);
+			    });
+	    }
 
-            var counter = int.Parse(counterFilePath.ReadAllText());
-            Assert.That(counter, Is.EqualTo(processesToUse));
-        }
+	    [TestCase(50, 1)]
+	    [TestCase(100, 1)]
+	    [TestCase(50, 20)]
+	    [TestCase(100, 20)]
+	    public void WritingToACommonFileWithParentProcessCreatingMutex(int processesToUse, int passes)
+	    {
+		    Console.WriteLine(_tempDirectory);
 
-        [TestCase(50, 20)]
-        [TestCase(100, 20)]
-        [TestCase(500, 20)]
-        [TestCase(1000, 20)]
-        public void LotsOfProcessesIncrementingACounter_MultiPass(int processesToUse, int passes)
-        {
-            for (int i = 0; i < passes; i++)
-            {
-                LotsOfProcessesWritingToACommonFile(processesToUse);
+		    MultiPassHelper(passes,
+			    () =>
+			    {
+				    var name = nameof(WritingToACommonFileWithParentProcessCreatingMutex);
+				    using (var mutex = CreateMutex(true, name))
+				    {
+					    mutex.ReleaseMutex();
 
-                _tempDirectory.DeleteContents();
-            }
-        }
+					    WritingToACommonFileHelper(processesToUse, name);
+				    }
+			    });
+	    }
 
-        [TestCase(50)]
-        [TestCase(100)]
-        public void LotsOfProcessesWritingToACommonFile(int processesToUse)
-        {
-            var name = nameof(LotsOfProcessesWritingToACommonFile);
-            var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
-            var filePath = _tempDirectory.Combine($"{name}.txt");
+	    private void MultiPassHelper(int passes, Action testFunc)
+	    {
+		    for (int i = 0; i < passes; i++)
+		    {
+			    _tempDirectory.DeleteContents();
 
-            Console.WriteLine(_tempDirectory);
+			    testFunc();
 
-            var workers = new List<Process>();
+			    Console.WriteLine($"Iteration #{i} OK");
+		    }
+	    }
 
-            try
-            {
-                for (var i = 0; i < processesToUse; i++)
-                    workers.Add(StartWorkerProcess(name, waitFilePath, "WriteToCommonFile", filePath));
+	    private void WritingToACommonFileHelper(int processesToUse, string mutexName)
+	    {
+		    var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
+		    var filePath = _tempDirectory.Combine($"{mutexName}.txt");
 
-                waitFilePath.Delete();
+		    RunWorkers(processesToUse, mutexName, waitFilePath, "WriteToCommonFile", filePath);
 
-                CleanlyJoinAll(workers.ToArray());
-            }
-            catch (Exception)
-            {
-                KillRemainingRunningWorkers(workers);
-                throw;
-            }
+		    var allLines = filePath.ReadAllLines();
+		    Assert.That(allLines.Length, Is.EqualTo(processesToUse));
 
-            var allLines = filePath.ReadAllLines();
-            Assert.That(allLines.Length, Is.EqualTo(processesToUse));
+		    // Make sure the data we wrote is roughly correct
+		    foreach (var line in allLines)
+			    Assert.IsTrue(line.StartsWith("I'm Process "), $"Something went wrong.  A line didn't have the expected output : {line}");
+	    }
 
-            // Make sure the data we wrote is roughly correct
-            foreach (var line in allLines)
-                Assert.IsTrue(line.StartsWith("I'm Process "), $"Something went wrong.  A line didn't have the expected output : {line}");
-        }
+	    public void IncrementingACounterHelper(int processesToUse, string mutexName)
+	    {
+		    var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
+		    var counterFilePath = _tempDirectory.Combine("counter.txt").WriteAllText("0");
 
-        [TestCase(50, 20)]
-        [TestCase(100, 20)]
-        public void LotsOfProcessesWritingToACommonFile_MultiPass(int processesToUse, int passes)
-        {
-            for (int i = 0; i < passes; i++)
-            {
-                LotsOfProcessesWritingToACommonFile(processesToUse);
+		    RunWorkers(processesToUse, mutexName, waitFilePath, "IncrementCounter", counterFilePath);
 
-                _tempDirectory.DeleteContents();
-            }
-        }
+		    var counter = int.Parse(counterFilePath.ReadAllText());
+		    Assert.That(counter, Is.EqualTo(processesToUse));
+	    }
+
+	    private void RunWorkers(int processesToUse, string name, NPath waitFilePath, string grabberMode, NPath dataFile)
+	    {
+		    var workers = new List<Process>();
+		    try
+		    {
+			    for (var i = 0; i < processesToUse; i++)
+				    workers.Add(StartWorkerProcess(name, waitFilePath, grabberMode, dataFile));
+
+			    waitFilePath.Delete();
+
+			    CleanlyJoinAll(workers.ToArray());
+		    }
+		    catch (Exception)
+		    {
+			    KillRemainingRunningWorkers(workers);
+			    throw;
+		    }
+	    }
 
         private static void KillRemainingRunningWorkers(IEnumerable<Process> workers)
         {
@@ -169,7 +207,7 @@ namespace SaferMutex.Tests.BaseSuites
             return process;
         }
 
-        private static void CleanlyJoinAll(params Process[] processWorkers)
+        private void CleanlyJoinAll(params Process[] processWorkers)
         {
             Process failedProcess = null;
             foreach (var worker in processWorkers)
@@ -182,9 +220,11 @@ namespace SaferMutex.Tests.BaseSuites
 
             if (failedProcess != null)
             {
-                var stdout = failedProcess.StandardOutput.ReadToEnd();
-                Console.WriteLine(stdout);
-                throw new Exception(stdout);
+	            var outputFilePath = _tempDirectory.Combine($"output-{failedProcess.Id}.txt");
+	            var workerOutput = outputFilePath.Exists()
+		            ? outputFilePath.ReadAllText()
+		            : $"No output file at : {outputFilePath}";
+                throw new Exception($"Worker process {failedProcess.Id} exited with a non-zero exit code of {failedProcess.ExitCode}.  Output was:\n {workerOutput}");
             }
         }
     }

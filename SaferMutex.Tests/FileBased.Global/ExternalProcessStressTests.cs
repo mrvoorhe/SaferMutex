@@ -13,7 +13,7 @@ namespace SaferMutex.Tests.FileBased.Global
     {
         protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
-            throw new NotSupportedException();
+	        return new SaferMutex.FileBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, _tempDirectory.ToString());
         }
 
         protected override string MutexTypeToCreate
