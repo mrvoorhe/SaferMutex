@@ -450,7 +450,7 @@ namespace SaferMutex
                     createdNew = !File.Exists(_lockFilePath);
 
                     // TODO by Mike : Remove
-                    System.Threading.Thread.Sleep(100);
+                    //System.Threading.Thread.Sleep(100);
 
                     _lockFileStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
 
@@ -476,13 +476,13 @@ namespace SaferMutex
                 }
 
                 // TODO by Mike : Remove
-                System.Threading.Thread.Sleep(100);
+                //System.Threading.Thread.Sleep(100);
 
                 // TODO by Mike : Remove
                 if (_lockFileStream != null)
                 {
                     _lockFileStream.Dispose();
-                    System.Threading.Thread.Sleep(100);
+                    //System.Threading.Thread.Sleep(100);
                 }
 
                 try
@@ -792,6 +792,7 @@ namespace SaferMutex
 
                 try
                 {
+                    _lockFileStream.Close();
                     _lockFileStream.Dispose();
                     _lockFileStream = null;
                     _hasLock = false;
@@ -811,19 +812,23 @@ namespace SaferMutex
                 try
                 {
                     _lockFileStream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+                    _lockFileStream.Lock(0, 1);
                     _hasLock = true;
                 }
                 catch (IOException)
                 {
+                    CloseLockStream();
                     return false;
                 }
                 catch (UnauthorizedAccessException)
                 {
+                    CloseLockStream();
                     // Can happen instead of IOException if another user is holding the file
                     return false;
                 }
                 catch (System.Security.SecurityException)
                 {
+                    CloseLockStream();
                     return false;
                 }
 
@@ -896,8 +901,9 @@ namespace SaferMutex
 
                     //createdNew = !File.Exists(_lockFilePath);
 
-                    using (var tmpStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
+                    using (var tmpStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                     {
+                        tmpStream.Lock(0, 1);
                         //if (_scope == Scope.SystemWide)
                         //{
                         //    // Woud need  (666) rw-rw-rw- permissions on the lock file
@@ -936,6 +942,16 @@ namespace SaferMutex
                 {
                     // It's possible that this mutex is used by two different processes running as different users.  When this happens
                     // we may get an auth exception when deleting the file instead of an IOException
+                }
+            }
+
+            private void CloseLockStream()
+            {
+                if (_lockFileStream != null)
+                {
+                    _lockFileStream.Close();
+                    _lockFileStream.Dispose();
+                    _lockFileStream = null;
                 }
             }
 
