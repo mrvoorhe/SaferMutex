@@ -811,8 +811,7 @@ namespace SaferMutex
 
                 try
                 {
-                    _lockFileStream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
-                    _lockFileStream.Lock(0, 1);
+                    _lockFileStream = OpenAndLockStream();
                     _hasLock = true;
                 }
                 catch (IOException)
@@ -856,22 +855,25 @@ namespace SaferMutex
                     // TODO by Mike : Probably not a great idea.  Could this be racey?  Might be OK since the stream creation would throw and then createdNew would be set back to false.
                     createdNew = !File.Exists(_lockFilePath);
 
-                    _lockFileStream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+                    _lockFileStream = OpenAndLockStream();
                     _hasLock = true;
                 }
                 catch (IOException)
                 {
+                    CloseLockStream();
                     createdNew = false;
                     return false;
                 }
                 catch (UnauthorizedAccessException)
                 {
+                    CloseLockStream();
                     createdNew = false;
                     // Can happen instead of IOException if another user is holding the file
                     return false;
                 }
                 catch (System.Security.SecurityException)
                 {
+                    CloseLockStream();
                     createdNew = false;
                     return false;
                 }
@@ -903,7 +905,6 @@ namespace SaferMutex
 
                     using (var tmpStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                     {
-                        tmpStream.Lock(0, 1);
                         //if (_scope == Scope.SystemWide)
                         //{
                         //    // Woud need  (666) rw-rw-rw- permissions on the lock file
@@ -943,6 +944,13 @@ namespace SaferMutex
                     // It's possible that this mutex is used by two different processes running as different users.  When this happens
                     // we may get an auth exception when deleting the file instead of an IOException
                 }
+            }
+
+            private FileStream OpenAndLockStream()
+            {
+                var stream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+                stream.Lock(0, 1);
+                return stream;
             }
 
             private void CloseLockStream()

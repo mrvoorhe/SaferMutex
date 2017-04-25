@@ -118,10 +118,10 @@ namespace SaferMutex.Tests.BaseSuites
                 });
         }
 
+        [TestCase(20, 1)]
         [TestCase(50, 1)]
-        [TestCase(100, 1)]
+        [TestCase(20, 20)]
         [TestCase(50, 20)]
-        [TestCase(100, 20)]
         public void WritingToACommonFileWithParentProcessCreatingMutex(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
