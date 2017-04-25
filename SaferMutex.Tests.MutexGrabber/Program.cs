@@ -108,6 +108,8 @@ namespace SaferMutex.Tests.MutexGrabber
             {
                 case "FileBasedGlobal":
                     return new SaferMutex.FileBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, temporaryDirectory);
+                case "FileBased2Global":
+                    return new SaferMutex.FileBased2(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, temporaryDirectory);
                 case "FrameworkBasedGlobal":
                     return new SaferMutex.FrameworkMutexBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew);
                 default:
