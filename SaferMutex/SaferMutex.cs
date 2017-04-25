@@ -449,6 +449,9 @@ namespace SaferMutex
                     // TODO by Mike : Probably not a great idea.  Could this be racey?  Might be OK since the stream creation would throw and then createdNew would be set back to false.
                     createdNew = !File.Exists(_lockFilePath);
 
+                    // TODO by Mike : Remove
+                    System.Threading.Thread.Sleep(100);
+
                     _lockFileStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
 
                     //if (_scope == Scope.SystemWide)
@@ -462,10 +465,24 @@ namespace SaferMutex
                 catch (IOException)
                 {
                     createdNew = false;
+                    // TODO by Mike : Remove
+                    Console.WriteLine("failed to open the stream when detecting createnew");
                 }
                 catch (UnauthorizedAccessException)
                 {
                     createdNew = false;
+                    // TODO by Mike : Remove
+                    Console.WriteLine("failed to open the stream when detecting createnew");
+                }
+
+                // TODO by Mike : Remove
+                System.Threading.Thread.Sleep(100);
+
+                // TODO by Mike : Remove
+                if (_lockFileStream != null)
+                {
+                    _lockFileStream.Dispose();
+                    System.Threading.Thread.Sleep(100);
                 }
 
                 try
@@ -475,9 +492,13 @@ namespace SaferMutex
                 }
                 catch (IOException)
                 {
+                    // TODO by Mike : Remove
+                    Console.WriteLine("failed to open the stream");
                 }
                 catch (UnauthorizedAccessException)
                 {
+                    // TODO by Mike : Remove
+                    Console.WriteLine("failed to open the stream");
                 }
 
                 return false;
