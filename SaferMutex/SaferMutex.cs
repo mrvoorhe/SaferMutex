@@ -28,6 +28,8 @@ namespace SaferMutex
 
     public sealed class SaferMutex : ISaferMutexMutex
     {
+	    #region Wrapper
+
         private readonly ISaferMutexMutex _implementation;
 
         public SaferMutex(bool initiallyOwned, string name, Scope scope, out bool owned, out bool createdNew)
@@ -121,6 +123,8 @@ namespace SaferMutex
         {
             _implementation.ReleaseMutex();
         }
+
+	    #endregion
 
         #region Implementation Classes
 
