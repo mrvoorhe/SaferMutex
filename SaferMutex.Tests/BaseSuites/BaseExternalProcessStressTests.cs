@@ -36,8 +36,8 @@ namespace SaferMutex.Tests.BaseSuites
         //[TestCase(1000, 1)]
         [TestCase(10, 10)]
         [TestCase(20, 10)]
-        //[TestCase(20, 20)]
-        //[TestCase(50, 20)]
+        [TestCase(20, 20)]
+        [TestCase(50, 20)]
         public void IncrementingACounter(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
@@ -56,8 +56,8 @@ namespace SaferMutex.Tests.BaseSuites
         //[TestCase(1000, 1)]
         [TestCase(10, 10)]
         [TestCase(20, 10)]
-        //[TestCase(20, 20)]
-        //[TestCase(50, 20)]
+        [TestCase(20, 20)]
+        [TestCase(50, 20)]
         public void IncrementingACounterWithParentProcessCreatingMutex(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
@@ -71,6 +71,33 @@ namespace SaferMutex.Tests.BaseSuites
                         mutex.ReleaseMutex();
 
                         IncrementingACounterHelper(processesToUse, name);
+                    }
+                });
+        }
+
+        [TestCase(50, 1)]
+        [TestCase(100, 1)]
+        //[TestCase(500, 1)]
+        //[TestCase(1000, 1)]
+        [TestCase(10, 10)]
+        [TestCase(20, 10)]
+        [TestCase(20, 20)]
+        [TestCase(50, 20)]
+        public void IncrementingACounterWithParentProcessCreatingMutexAndReleaseAfterStart(int processesToUse, int passes)
+        {
+            Console.WriteLine(_tempDirectory);
+
+            MultiPassHelper(passes,
+                () =>
+                {
+                    var name = nameof(IncrementingACounterWithParentProcessCreatingMutexAndReleaseAfterStart);
+                    using (var mutex = CreateMutex(true, name))
+                    {
+                        IncrementingACounterHelper(processesToUse, name, () =>
+                        {
+                            //System.Threading.Thread.Sleep(1000);
+                            mutex.ReleaseMutex();
+                        });
                     }
                 });
         }
@@ -139,18 +166,18 @@ namespace SaferMutex.Tests.BaseSuites
                 Assert.IsTrue(line.StartsWith("I'm Process "), $"Something went wrong.  A line didn't have the expected output : {line}");
         }
 
-        public void IncrementingACounterHelper(int processesToUse, string mutexName)
+        public void IncrementingACounterHelper(int processesToUse, string mutexName, Action afterStart = null)
         {
             var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
             var counterFilePath = _tempDirectory.Combine("counter.txt").WriteAllText("0");
 
-            RunWorkers(processesToUse, mutexName, waitFilePath, "IncrementCounter", counterFilePath);
+            RunWorkers(processesToUse, mutexName, waitFilePath, "IncrementCounter", counterFilePath, afterStart);
 
             var counter = int.Parse(counterFilePath.ReadAllText());
             Assert.That(counter, Is.EqualTo(processesToUse));
         }
 
-        private void RunWorkers(int processesToUse, string name, NPath waitFilePath, string grabberMode, NPath dataFile)
+        private void RunWorkers(int processesToUse, string name, NPath waitFilePath, string grabberMode, NPath dataFile, Action afterStart = null)
         {
             var workers = new List<Process>();
             try
@@ -159,6 +186,9 @@ namespace SaferMutex.Tests.BaseSuites
                     workers.Add(StartWorkerProcess(name, waitFilePath, grabberMode, dataFile));
 
                 waitFilePath.Delete();
+
+                if (afterStart != null)
+                    afterStart();
 
                 CleanlyJoinAll(workers.ToArray());
             }
