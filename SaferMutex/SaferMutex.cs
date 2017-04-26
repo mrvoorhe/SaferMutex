@@ -792,14 +792,7 @@ namespace SaferMutex
 
                 try
                 {
-#if NETCORE
-                    throw new NotImplementedException();
-#else
-                    _lockFileStream.Unlock(0, 1);
-#endif
-                    _lockFileStream.Close();
-                    _lockFileStream.Dispose();
-                    _lockFileStream = null;
+                    CloseLockStream();
                     _hasLock = false;
                 }
                 catch (Exception)
@@ -966,8 +959,11 @@ namespace SaferMutex
             {
                 if (_lockFileStream != null)
                 {
-                    _lockFileStream.Unlock(0,1);
-                    _lockFileStream.Close();
+#if NETCORE
+                    throw new NotImplementedException();
+#else
+                    _lockFileStream.Unlock(0, 1);
+#endif
                     _lockFileStream.Dispose();
                     _lockFileStream = null;
                 }
