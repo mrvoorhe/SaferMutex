@@ -792,7 +792,11 @@ namespace SaferMutex
 
                 try
                 {
+#if NETCORE
+                    throw new NotImplementedException();
+#else
                     _lockFileStream.Unlock(0, 1);
+#endif
                     _lockFileStream.Close();
                     _lockFileStream.Dispose();
                     _lockFileStream = null;
@@ -950,7 +954,11 @@ namespace SaferMutex
             private void OpenAndLockStream()
             {
                 _lockFileStream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+#if NETCORE
+                throw new NotImplementedException();
+#else
                 _lockFileStream.Lock(0, 1);
+#endif
                 //_lockFileStream.WriteByte(0);
             }
 
