@@ -280,8 +280,8 @@ namespace SaferMutex.Tests.BaseSuites
         [Test]
         public void DifferentNamesCanBeOwnedAtTheSameTime()
         {
-            ISaferMutexMutex mutex1 = null;
-            ISaferMutexMutex mutex2 = null;
+            ISaferMutex mutex1 = null;
+            ISaferMutex mutex2 = null;
 
             try
             {

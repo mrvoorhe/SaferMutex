@@ -100,10 +100,10 @@ namespace SaferMutex.Tests.MutexGrabber
             Console.WriteLine(message);
         }
 
-        private static ISaferMutexMutex CreateMutex(string mutexType, string temporaryDirectory, bool initiallyOwned, string name, out bool owned)
+        private static ISaferMutex CreateMutex(string mutexType, string temporaryDirectory, bool initiallyOwned, string name, out bool owned)
         {
             bool createdNew;
-            ISaferMutexMutex returnValue;
+            ISaferMutex returnValue;
             switch (mutexType)
             {
                 case "FileBasedGlobal":

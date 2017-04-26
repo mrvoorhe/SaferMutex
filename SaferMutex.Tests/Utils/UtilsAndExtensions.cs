@@ -8,9 +8,9 @@ using NUnit.Framework;
 
 namespace SaferMutex.Tests.Utils
 {
-    public class CreatedMutexContainer : ISaferMutexMutex
+    public class CreatedMutexContainer : ISaferMutex
     {
-        public ISaferMutexMutex Mutex;
+        public ISaferMutex Mutex;
         public bool Owned;
         public bool CreatedNew;
         public UtilsAndExtensions.CreateMutexFunc CreateFunc;
@@ -59,7 +59,7 @@ namespace SaferMutex.Tests.Utils
 
     public static class UtilsAndExtensions
     {
-        public delegate ISaferMutexMutex CreateMutexFunc(bool initiallyOwned, string name, out bool owned);
+        public delegate ISaferMutex CreateMutexFunc(bool initiallyOwned, string name, out bool owned);
 
         public const int AvoidHangTimeout = 30000;
 

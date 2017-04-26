@@ -11,7 +11,7 @@ namespace SaferMutex.Tests.FileBased.Global
     [TestFixture]
     public class ExternalProcessStressTests : BaseExternalProcessStressTests
     {
-        protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
+        protected override ISaferMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
 	        return new SaferMutex.FileBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew, _tempDirectory.ToString());
         }
