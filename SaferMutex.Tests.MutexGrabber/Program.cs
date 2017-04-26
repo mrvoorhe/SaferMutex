@@ -11,11 +11,12 @@ namespace SaferMutex.Tests.MutexGrabber
         {
             var mutexType = args[0];
             var mutexName = args[1];
-            var testTemporaryDirectory = args[2];
-            var waitFilePath = args[3];
+            var initiallyOwned = bool.Parse(args[2]);
+            var testTemporaryDirectory = args[3];
+            var waitFilePath = args[4];
 
-            var mode = args.Length >= 6 ? args[4] : string.Empty;
-            var sharedFilePath = args.Length >= 6 ? args[5] : string.Empty;
+            var mode = args.Length >= 7 ? args[5] : string.Empty;
+            var sharedFilePath = args.Length >= 7 ? args[6] : string.Empty;
 
             var aliveFilePath = Path.Combine(testTemporaryDirectory, $"output-{Process.GetCurrentProcess().Id}.txt");
             using (var outputWriter = new StreamWriter(aliveFilePath))
@@ -25,7 +26,6 @@ namespace SaferMutex.Tests.MutexGrabber
                 try
                 {
                     LogOutput("I Started!");
-
                     try
                     {
                         Action safeAction = null;
@@ -51,13 +51,13 @@ namespace SaferMutex.Tests.MutexGrabber
                             Thread.Sleep(1);
 
                         bool owned;
-                        using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, true, mutexName, out owned))
+                        using (var mutex = CreateMutex(mutexType, testTemporaryDirectory, initiallyOwned, mutexName, out owned))
                         {
                             if (!owned)
                             {
                                 LogOutput("I need to wait for the mutex");
                                 // Use timeout to avoid a hang if there is a bug
-                                if (!mutex.WaitOne(60000))
+                                if (!mutex.WaitOne(10000))
                                 {
                                     LogOutput("Should have been able to obtain ownership of the mutex by now");
                                     return 2;
@@ -65,8 +65,6 @@ namespace SaferMutex.Tests.MutexGrabber
                             }
 
                             LogOutput("Got the mutex");
-
-                            //System.Threading.Thread.Sleep(500);
 
                             if (safeAction != null)
                             {
@@ -80,7 +78,6 @@ namespace SaferMutex.Tests.MutexGrabber
                         }
 
                         LogOutput("I Ended!");
-
                         return 0;
                     }
                     catch (Exception e)

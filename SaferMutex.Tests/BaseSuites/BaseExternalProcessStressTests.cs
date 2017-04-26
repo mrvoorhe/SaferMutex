@@ -21,7 +21,7 @@ namespace SaferMutex.Tests.BaseSuites
 
             var workers = new List<Process>();
             for (var i = 0; i < 50; i++)
-                workers.Add(StartWorkerProcess(name, waitFilePath));
+                workers.Add(StartWorkerProcess(name, true, waitFilePath));
 
             waitFilePath.Delete();
 
@@ -38,7 +38,7 @@ namespace SaferMutex.Tests.BaseSuites
         [TestCase(20, 10)]
         [TestCase(20, 20)]
         [TestCase(50, 20)]
-        public void IncrementingACounter(int processesToUse, int passes)
+        public virtual void IncrementingACounter(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
 
@@ -46,10 +46,11 @@ namespace SaferMutex.Tests.BaseSuites
                 () =>
                 {
                     var name = nameof(IncrementingACounter);
-                    IncrementingACounterHelper(processesToUse, name);
+                    IncrementingACounterHelper(processesToUse, name, true);
                 });
         }
 
+        [TestCase(10, 1)]
         [TestCase(50, 1)]
         [TestCase(100, 1)]
         //[TestCase(500, 1)]
@@ -70,7 +71,7 @@ namespace SaferMutex.Tests.BaseSuites
                     {
                         mutex.ReleaseMutex();
 
-                        IncrementingACounterHelper(processesToUse, name);
+                        IncrementingACounterHelper(processesToUse, name, false);
                     }
                 });
         }
@@ -93,7 +94,7 @@ namespace SaferMutex.Tests.BaseSuites
                     var name = nameof(IncrementingACounterWithParentProcessCreatingMutexAndReleaseAfterStart);
                     using (var mutex = CreateMutex(true, name))
                     {
-                        IncrementingACounterHelper(processesToUse, name, () =>
+                        IncrementingACounterHelper(processesToUse, name, false, () =>
                         {
                             //System.Threading.Thread.Sleep(1000);
                             mutex.ReleaseMutex();
@@ -106,7 +107,7 @@ namespace SaferMutex.Tests.BaseSuites
         [TestCase(100, 1)]
         [TestCase(50, 20)]
         [TestCase(100, 20)]
-        public void WritingToACommonFile(int processesToUse, int passes)
+        public virtual void WritingToACommonFile(int processesToUse, int passes)
         {
             Console.WriteLine(_tempDirectory);
 
@@ -114,7 +115,7 @@ namespace SaferMutex.Tests.BaseSuites
                 () =>
                 {
                     var name = nameof(WritingToACommonFile);
-                    WritingToACommonFileHelper(processesToUse, name);
+                    WritingToACommonFileHelper(processesToUse, name, false);
                 });
         }
 
@@ -134,7 +135,7 @@ namespace SaferMutex.Tests.BaseSuites
                     {
                         mutex.ReleaseMutex();
 
-                        WritingToACommonFileHelper(processesToUse, name);
+                        WritingToACommonFileHelper(processesToUse, name, false);
                     }
                 });
         }
@@ -151,12 +152,12 @@ namespace SaferMutex.Tests.BaseSuites
             }
         }
 
-        private void WritingToACommonFileHelper(int processesToUse, string mutexName)
+        private void WritingToACommonFileHelper(int processesToUse, string mutexName, bool workerInitiallyOwned)
         {
             var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
             var filePath = _tempDirectory.Combine($"{mutexName}.txt");
 
-            RunWorkers(processesToUse, mutexName, waitFilePath, "WriteToCommonFile", filePath);
+            RunWorkers(processesToUse, mutexName, workerInitiallyOwned, waitFilePath, "WriteToCommonFile", filePath);
 
             var allLines = filePath.ReadAllLines();
             Assert.That(allLines.Length, Is.EqualTo(processesToUse));
@@ -166,24 +167,24 @@ namespace SaferMutex.Tests.BaseSuites
                 Assert.IsTrue(line.StartsWith("I'm Process "), $"Something went wrong.  A line didn't have the expected output : {line}");
         }
 
-        public void IncrementingACounterHelper(int processesToUse, string mutexName, Action afterStart = null)
+        public void IncrementingACounterHelper(int processesToUse, string mutexName, bool workerInitiallyOwned, Action afterStart = null)
         {
             var waitFilePath = _tempDirectory.Combine("wait.txt").WriteAllText("A file to block the worker processes until we want them to start");
             var counterFilePath = _tempDirectory.Combine("counter.txt").WriteAllText("0");
 
-            RunWorkers(processesToUse, mutexName, waitFilePath, "IncrementCounter", counterFilePath, afterStart);
+            RunWorkers(processesToUse, mutexName, workerInitiallyOwned, waitFilePath, "IncrementCounter", counterFilePath, afterStart);
 
             var counter = int.Parse(counterFilePath.ReadAllText());
             Assert.That(counter, Is.EqualTo(processesToUse));
         }
 
-        private void RunWorkers(int processesToUse, string name, NPath waitFilePath, string grabberMode, NPath dataFile, Action afterStart = null)
+        private void RunWorkers(int processesToUse, string name, bool workerInitiallyOwned, NPath waitFilePath, string grabberMode, NPath dataFile, Action afterStart = null)
         {
             var workers = new List<Process>();
             try
             {
                 for (var i = 0; i < processesToUse; i++)
-                    workers.Add(StartWorkerProcess(name, waitFilePath, grabberMode, dataFile));
+                    workers.Add(StartWorkerProcess(name, workerInitiallyOwned, waitFilePath, grabberMode, dataFile));
 
                 waitFilePath.Delete();
 
@@ -214,7 +215,7 @@ namespace SaferMutex.Tests.BaseSuites
                 }
         }
 
-        private Process StartWorkerProcess(string mutexName, NPath waitFilePath, string mode = null, NPath sharedDataFilePath = null, string moreData = null)
+        private Process StartWorkerProcess(string mutexName, bool workerInitiallyOwned, NPath waitFilePath, string mode = null, NPath sharedDataFilePath = null, string moreData = null)
         {
             var mutexGrabberPath = NPath.CurrentDirectory.Combine("SaferMutex.Tests.MutexGrabber.exe");
 
@@ -222,7 +223,7 @@ namespace SaferMutex.Tests.BaseSuites
                 throw new FileNotFoundException(mutexGrabberPath.ToString());
 
             var argBuilder = new StringBuilder();
-            argBuilder.Append($"{MutexTypeToCreate} {mutexName} {_tempDirectory} {waitFilePath}");
+            argBuilder.Append($"{MutexTypeToCreate} {mutexName} {workerInitiallyOwned} {_tempDirectory} {waitFilePath}");
 
             if (!string.IsNullOrEmpty(mode))
             {

@@ -792,6 +792,7 @@ namespace SaferMutex
 
                 try
                 {
+                    _lockFileStream.Unlock(0, 1);
                     _lockFileStream.Close();
                     _lockFileStream.Dispose();
                     _lockFileStream = null;
@@ -811,7 +812,7 @@ namespace SaferMutex
 
                 try
                 {
-                    _lockFileStream = OpenAndLockStream();
+                    OpenAndLockStream();
                     _hasLock = true;
                 }
                 catch (IOException)
@@ -855,7 +856,7 @@ namespace SaferMutex
                     // TODO by Mike : Probably not a great idea.  Could this be racey?  Might be OK since the stream creation would throw and then createdNew would be set back to false.
                     createdNew = !File.Exists(_lockFilePath);
 
-                    _lockFileStream = OpenAndLockStream();
+                    OpenAndLockStream();
                     _hasLock = true;
                 }
                 catch (IOException)
@@ -903,7 +904,7 @@ namespace SaferMutex
 
                     //createdNew = !File.Exists(_lockFilePath);
 
-                    using (var tmpStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    using (var tmpStream = new FileStream(_lockFilePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
                     {
                         //if (_scope == Scope.SystemWide)
                         //{
@@ -946,17 +947,18 @@ namespace SaferMutex
                 }
             }
 
-            private FileStream OpenAndLockStream()
+            private void OpenAndLockStream()
             {
-                var stream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
-                stream.Lock(0, 1);
-                return stream;
+                _lockFileStream = new FileStream(this._lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                _lockFileStream.Lock(0, 1);
+                //_lockFileStream.WriteByte(0);
             }
 
             private void CloseLockStream()
             {
                 if (_lockFileStream != null)
                 {
+                    _lockFileStream.Unlock(0,1);
                     _lockFileStream.Close();
                     _lockFileStream.Dispose();
                     _lockFileStream = null;
