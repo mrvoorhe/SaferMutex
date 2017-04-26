@@ -11,7 +11,7 @@ namespace SaferMutex.Tests.FrameworkBased
     [TestFixture]
     public class ThreadedStressTests : BaseThreadedStressTests
     {
-        protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
+        protected override ISaferMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
             return new SaferMutex.FrameworkMutexBased(initiallyOwned, name, Scope.CurrentProcess, out owned, out createdNew);
         }

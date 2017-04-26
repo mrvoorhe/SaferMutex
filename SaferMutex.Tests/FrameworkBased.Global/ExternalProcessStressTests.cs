@@ -12,7 +12,7 @@ namespace SaferMutex.Tests.FrameworkBased.Global
     [Platform(Include = "Win")]
     public class ExternalProcessStressTests : BaseExternalProcessStressTests
     {
-        protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
+        protected override ISaferMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
             throw new NotSupportedException();
         }

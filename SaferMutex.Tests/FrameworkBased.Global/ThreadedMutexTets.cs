@@ -12,7 +12,7 @@ namespace SaferMutex.Tests.FrameworkBased.Global
     [Platform(Include = "Win")]
     public class ThreadedMutexTets : BaseThreadedTests
     {
-        protected override ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
+        protected override ISaferMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
             return new SaferMutex.FrameworkMutexBased(initiallyOwned, name, Scope.CurrentUser, out owned, out createdNew);
         }

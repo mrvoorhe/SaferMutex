@@ -19,7 +19,7 @@ namespace SaferMutex.Tests.BaseSuites
             _tempDirectory.DeleteContents();
         }
 
-        protected static void DisposeOfMutexsAsCleanlyAsPossible(params ISaferMutexMutex[] mutexCollection)
+        protected static void DisposeOfMutexsAsCleanlyAsPossible(params ISaferMutex[] mutexCollection)
         {
             Exception exceptionDuringCleanup = null;
             foreach (var mutex in mutexCollection)
@@ -49,17 +49,17 @@ namespace SaferMutex.Tests.BaseSuites
             return new CreatedMutexContainer { Mutex = mutex, Owned = owned, CreatedNew = createdNew, CreateFunc = CreateMutex, Name = name };
         }
 
-        protected ISaferMutexMutex CreateMutex(bool initiallyOwned, string name, out bool owned)
+        protected ISaferMutex CreateMutex(bool initiallyOwned, string name, out bool owned)
         {
             bool createdNew;
             return CreateMutex(initiallyOwned, name, out owned, out createdNew);
         }
 
-        protected ISaferMutexMutex CreateMutex(bool initiallyOwned, string name, out bool owned, out bool createdNew)
+        protected ISaferMutex CreateMutex(bool initiallyOwned, string name, out bool owned, out bool createdNew)
         {
             return CreateMutexImplementation(initiallyOwned, name, out owned, out createdNew);
         }
 
-        protected abstract ISaferMutexMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew);
+        protected abstract ISaferMutex CreateMutexImplementation(bool initiallyOwned, string name, out bool owned, out bool createdNew);
     }
 }

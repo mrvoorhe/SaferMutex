@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
 namespace SaferMutex
 {
 
-    public interface ISaferMutexMutex : IDisposable
+    public interface ISaferMutex : IDisposable
     {
         void WaitOne();
         bool WaitOne(int millisecondsTimeout);
@@ -26,11 +25,11 @@ namespace SaferMutex
         //SystemWide
     }
 
-    public sealed class SaferMutex : ISaferMutexMutex
+    public sealed class SaferMutex : ISaferMutex
     {
 	    #region Wrapper
 
-        private readonly ISaferMutexMutex _implementation;
+        private readonly ISaferMutex _implementation;
 
         public SaferMutex(bool initiallyOwned, string name, Scope scope, out bool owned, out bool createdNew)
         {
@@ -132,7 +131,7 @@ namespace SaferMutex
 
         #region Implementation Classes
 
-        internal sealed class FrameworkMutexBased : ISaferMutexMutex
+        internal sealed class FrameworkMutexBased : ISaferMutex
         {
             private readonly Mutex _mutex;
             private bool _disposed;
@@ -273,7 +272,7 @@ namespace SaferMutex
             }
         }
 
-        internal sealed class FileBased : ISaferMutexMutex
+        internal sealed class FileBased : ISaferMutex
         {
             private const string LockFileExtension = "lock";
             private const int WaitPeriodDuringInfiniteTimeout = 100;
@@ -644,7 +643,7 @@ namespace SaferMutex
             }
         }
 
-        internal sealed class FileBased2 : ISaferMutexMutex
+        internal sealed class FileBased2 : ISaferMutex
         {
             private const string LockFileExtension = "lock";
             private const int WaitPeriodDuringInfiniteTimeout = 100;
