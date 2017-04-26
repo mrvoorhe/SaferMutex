@@ -61,6 +61,9 @@ namespace SaferMutex
         {
             get
             {
+#if NETCORE
+                throw new NotImplementedException();
+#else
                 switch (Environment.OSVersion.Platform)
                 {
                     case PlatformID.Win32NT:
@@ -72,6 +75,7 @@ namespace SaferMutex
                     default:
                         return false;
                 }
+#endif
             }
         }
 
@@ -201,7 +205,11 @@ namespace SaferMutex
             {
                 using (var wrapperHandle = new ManualResetEvent(false))
                 {
+#if NETCORE
+                    throw new NotImplementedException();
+#else
                     wrapperHandle.SafeWaitHandle = _mutex.SafeWaitHandle;
+#endif
                     WaitHandle[] handles = new WaitHandle[breakHandles.Length + 1];
                     handles[0] = wrapperHandle;
 
